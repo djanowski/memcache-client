@@ -210,11 +210,21 @@ class MemCache
   # Retrieves +key+ from memcache.  If +raw+ is false, the value will be
   # unmarshalled.
 
-  def get(key, raw = false)
+  def get(key, raw = false, *args)
     with_server(key) do |server, cache_key|
       value = cache_get server, cache_key
       logger.debug { "GET #{key} from #{server.inspect}: #{value ? value.to_s.size : 'nil'}" } if logger
-      return nil if value.nil?
+
+      if value.nil?
+        if block_given?
+          value = yield
+          add(key, value, *args)
+          return value
+        else
+          return nil
+        end
+      end
+
       value = Marshal.load value unless raw
       return value
     end
