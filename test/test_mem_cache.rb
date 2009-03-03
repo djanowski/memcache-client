@@ -478,6 +478,48 @@ class TestMemCache < Test::Unit::TestCase
     assert_equal '0123456789', value
   end
 
+  def test_fetch_without_a_block
+    server = FakeServer.new
+    server.socket.data.write "END\r\n"
+    server.socket.data.rewind
+
+    @cache.servers = [server]
+
+    flexmock(@cache).should_receive(:get).with('key', false).and_return(nil)
+
+    value = @cache.fetch('key', 1)
+  end
+  
+  def test_fetch_miss
+    server = FakeServer.new
+    server.socket.data.write "END\r\n"
+    server.socket.data.rewind
+
+    @cache.servers = [server]
+
+    flexmock(@cache).should_receive(:get).with('key', false).and_return(nil)
+    flexmock(@cache).should_receive(:add).with('key', 'value', 1, false)
+
+    value = @cache.fetch('key', 1) { 'value' }
+
+    assert_equal 'value', value
+  end
+
+  def test_fetch_hit
+    server = FakeServer.new
+    server.socket.data.write "END\r\n"
+    server.socket.data.rewind
+
+    @cache.servers = [server]
+
+    flexmock(@cache).should_receive(:get).with('key', false).and_return('value')
+    flexmock(@cache).should_receive(:add).never
+
+    value = @cache.fetch('key', 1) { raise 'Should not be called.' }
+
+    assert_equal 'value', value
+  end
+
   def test_get_bad_key
     util_setup_fake_server
     assert_raise ArgumentError do @cache.get 'k y' end

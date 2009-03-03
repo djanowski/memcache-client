@@ -223,6 +223,27 @@ class MemCache
   end
 
   ##
+  # Performs a +get+ with the given +key+.
+  #
+  # If a block is given, it will be yielded
+  # and its return value will be used to
+  # set the value by calling +add+.
+  #
+  # If you do not provide a block, using this
+  # method is the same as using +get+.
+  #
+  def fetch(key, expiry = 0, raw = false)
+    value = get(key, raw)
+
+    if value.nil? && block_given?
+      value = yield
+      add(key, value, expiry, raw)
+    end
+
+    value
+  end
+
+  ##
   # Retrieves multiple values from memcached in parallel, if possible.
   #
   # The memcached protocol supports the ability to retrieve multiple
