@@ -477,6 +477,41 @@ class TestMemCache < Test::Unit::TestCase
 
     assert_equal '0123456789', value
   end
+  
+  def test_get_miss_with_block
+    server = FakeServer.new
+    server.socket.data.write "END\r\n"
+    server.socket.data.rewind
+
+    @cache.servers = [server]
+
+    flexmock(@cache).should_receive(:add).with('key', 'value')
+
+    value = @cache.get('key') { 'value' }
+
+    assert_equal 'value', value
+
+    assert_equal "get my_namespace:key\r\n",
+                 @cache.servers.first.socket.written.string
+  end
+
+  def test_get_miss_with_block_and_expiry
+    server = FakeServer.new
+    server.socket.data.write "END\r\n"
+    server.socket.data.rewind
+
+    @cache.servers = [server]
+
+    flexmock(@cache).should_receive(:add).with('key', 'value', 1)
+
+    value = @cache.get('key', false, 1) { 'value' }
+
+    assert_equal 'value', value
+
+    assert_equal "get my_namespace:key\r\n",
+                 @cache.servers.first.socket.written.string
+  end
+
 
   def test_fetch_without_a_block
     server = FakeServer.new
